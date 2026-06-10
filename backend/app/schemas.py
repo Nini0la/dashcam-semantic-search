@@ -41,6 +41,7 @@ class IndexResponse(BaseModel):
     demo_mode: bool
     submitted: int
     completed: int
+    failed: int = 0
     videos: list[VideoOut]
 
 
@@ -49,8 +50,8 @@ class SearchRequest(BaseModel):
     status: Optional[str] = None
     detected_object: Optional[str] = None
     road_quality_label: Optional[str] = None
-    min_score: float = 0.0
-    limit: int = 20
+    min_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    limit: int = Field(default=20, ge=1, le=100)
 
 
 class SearchResult(BaseModel):

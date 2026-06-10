@@ -22,7 +22,7 @@ export default function App() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    loadVideos();
+    loadVideos().catch((error) => setMessage(error.message));
   }, []);
 
   const detectedObjects = useMemo(() => {
@@ -60,10 +60,10 @@ export default function App() {
     await run("Indexing started", async () => {
       const data = await api("/videos/index", { method: "POST" });
       setVideos(data.videos);
-      await search({ preventDefault: () => {} });
+      await performSearch();
       return data.demo_mode
         ? `${data.completed} demo videos indexed.`
-        : `${data.submitted} videos submitted to Azure AI Video Indexer.`;
+        : `${data.submitted} videos submitted to Azure AI Video Indexer, ${data.failed} failed.`;
     });
   }
 
@@ -79,19 +79,7 @@ export default function App() {
   async function search(event) {
     event.preventDefault();
     await run("Search complete", async () => {
-      const data = await api("/search", {
-        method: "POST",
-        body: JSON.stringify({
-          query,
-          ...filters,
-          status: filters.status || null,
-          detected_object: filters.detected_object || null,
-          road_quality_label: filters.road_quality_label || null,
-          min_score: Number(filters.min_score),
-          limit: 20,
-        }),
-      });
-      setResults(data.results);
+      const data = await performSearch();
       return `${data.results.length} results.`;
     });
   }
@@ -102,9 +90,26 @@ export default function App() {
         method: "POST",
         body: JSON.stringify({ label_type: "road_quality", value }),
       });
-      await search({ preventDefault: () => {} });
+      await performSearch();
       return `Marked as ${value}.`;
     });
+  }
+
+  async function performSearch() {
+    const data = await api("/search", {
+      method: "POST",
+      body: JSON.stringify({
+        query,
+        ...filters,
+        status: filters.status || null,
+        detected_object: filters.detected_object || null,
+        road_quality_label: filters.road_quality_label || null,
+        min_score: Number(filters.min_score),
+        limit: 20,
+      }),
+    });
+    setResults(data.results);
+    return data;
   }
 
   async function run(prefix, action) {

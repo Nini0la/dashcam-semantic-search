@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +21,22 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
+
+    @field_validator(
+        "azure_storage_connection_string",
+        "azure_blob_container_name",
+        "video_indexer_account_id",
+        "video_indexer_location",
+        "video_indexer_api_key",
+        "video_indexer_account_name",
+        "demo_mode",
+        mode="before",
+    )
+    @classmethod
+    def empty_string_to_none(cls, value: object) -> object:
+        if value == "":
+            return None
+        return value
 
     @property
     def db_path(self) -> Path:

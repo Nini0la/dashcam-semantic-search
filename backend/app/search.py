@@ -232,6 +232,7 @@ def search_frames(
     provider = get_embedding_provider()
     query_embedding = provider.embed_text(query)
     query_terms = set(_tokenize(query))
+    normalized_query = " ".join(_tokenize(query))
     with get_connection() as conn:
         rows = conn.execute(
             """
@@ -264,7 +265,9 @@ def search_frames(
 
         metadata_text = row["metadata_text"] or ""
         similarity = cosine_similarity(query_embedding, loads_embedding(row["embedding_json"]))
-        keyword_score = _keyword_score(query_terms, metadata_text, labels, objects, user_labels)
+        keyword_score = _keyword_score(
+            query_terms, normalized_query, metadata_text, labels, objects, user_labels
+        )
         score = max(similarity, keyword_score)
         if score < min_score:
             continue
@@ -369,6 +372,7 @@ def _dedupe_frames(frames: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _keyword_score(
     query_terms: set[str],
+    normalized_query: str,
     metadata_text: str,
     labels: list[str],
     objects: list[str],
@@ -381,7 +385,7 @@ def _keyword_score(
     if not haystack_terms:
         return 0.0
     matches = len(query_terms & haystack_terms)
-    phrase_bonus = 0.25 if " ".join(query_terms) in haystack.lower() else 0.0
+    phrase_bonus = 0.25 if normalized_query and normalized_query in haystack.lower() else 0.0
     return min(1.0, matches / max(len(query_terms), 1) + phrase_bonus)
 
 

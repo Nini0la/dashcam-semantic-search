@@ -45,7 +45,10 @@ class VideoIndexerClient:
         response = requests.post(url, params=params, timeout=60)
         response.raise_for_status()
         payload = response.json()
-        return payload.get("id") or payload.get("videoId")
+        video_id = payload.get("id") or payload.get("videoId")
+        if not video_id:
+            raise RuntimeError(f"Video Indexer upload response did not include a video id: {payload}")
+        return video_id
 
     def get_indexing_status(self, video_indexer_id: str) -> str:
         token = self.get_access_token(allow_edit=False)

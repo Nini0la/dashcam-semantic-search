@@ -29,7 +29,11 @@ export default function ResultCard({ result, onOpen, onLabel }) {
         {result.user_labels.length > 0 && <TagGroup title="Manual" values={result.user_labels} />}
         <div className="card-actions">
           <button onClick={() => onOpen(result)}>Open at timestamp</button>
-          <a href={`${result.blob_url}#t=${Math.floor(result.timestamp_seconds)}`} target="_blank">
+          <a
+            href={`${result.blob_url}#t=${Math.floor(result.timestamp_seconds)}`}
+            target="_blank"
+            rel="noreferrer"
+          >
             New tab
           </a>
         </div>

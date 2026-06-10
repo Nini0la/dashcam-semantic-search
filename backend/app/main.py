@@ -56,6 +56,11 @@ def videos() -> list[dict]:
 @app.post("/videos/discover", response_model=DiscoverResponse)
 def discover_videos() -> dict:
     settings = get_settings()
+    if not settings.use_demo_mode and not settings.has_blob_config:
+        raise HTTPException(
+            status_code=400,
+            detail="Azure Blob settings are required when DEMO_MODE=false",
+        )
     blobs = discover_blob_videos(settings)
     for blob in blobs:
         upsert_discovered_video(blob.blob_name, blob.blob_url, blob.sas_url)
@@ -77,6 +82,7 @@ def index_videos() -> dict:
     ]
     submitted = 0
     completed = 0
+    failed = 0
 
     if settings.use_demo_mode:
         for video in videos_to_index:
@@ -86,8 +92,15 @@ def index_videos() -> dict:
             "demo_mode": True,
             "submitted": submitted,
             "completed": completed,
+            "failed": failed,
             "videos": list_videos(),
         }
+
+    if not settings.has_video_indexer_config:
+        raise HTTPException(
+            status_code=400,
+            detail="Video Indexer settings are required when DEMO_MODE=false",
+        )
 
     client = VideoIndexerClient(settings)
     for video in videos_to_index:
@@ -98,12 +111,13 @@ def index_videos() -> dict:
             submitted += 1
         except Exception:
             update_video_submission(video["id"], None, VideoStatus.FAILED)
-            raise
+            failed += 1
 
     return {
         "demo_mode": False,
         "submitted": submitted,
         "completed": completed,
+        "failed": failed,
         "videos": list_videos(),
     }
 
